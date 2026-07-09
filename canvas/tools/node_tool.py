@@ -3,7 +3,7 @@ from .tool import Tool
 
 class NodeTool(Tool):
     name = "Node"
-    pickable_targets = {"plane"}
+    pickable_targets = {"plane", "node"}
 
     def on_left_press(self, actor, x, y):
         if actor is self.canvas.plane_actor:

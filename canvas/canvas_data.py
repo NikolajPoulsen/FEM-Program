@@ -14,3 +14,9 @@ class NodeActors:
 class BeamActors:
     beam_actor: vtk.vtkActor
     beam_mesh: pv.PolyData
+
+@dataclass
+class ConstraintActors:
+    actor: vtk.vtkActor
+    mesh: pv.PolyData
+    c_type: str  # 'fixed', 'pinned' eller 'roller'

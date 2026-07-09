@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -6,6 +6,8 @@ class NodeData:
     id: int
     x: float
     y: float
+    is_constrained: bool = False
+    locked_dofs: set[int] = field(default_factory=set)
 
 class NodeModel:
     def __init__(self):

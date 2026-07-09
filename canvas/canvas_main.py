@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt
 from pyvistaqt import QtInteractor
 
 from .tools import *
-from .canvas_data import NodeActors, BeamActors
+from .canvas_data import NodeActors, BeamActors, ConstraintActors
 from model import BeamModel, NodeModel
 
 
@@ -44,12 +44,22 @@ class DrawingCanvas(QtInteractor):
         self.beam_actors: dict[tuple[int, int], BeamActors] = {}
         self.actor_to_beam: dict[object, tuple[int, int]] = {}
 
+        self.constraint_actors: dict[int, ConstraintActors] = {}
+
         self.dragging_node_id: int | None = None
         self.dragging_beam_id: int | None = None
         self.selected_item: tuple[str, object] | None = None
         self.hovered_item: tuple[str, object] | None = None
 
         self._apply_pickable_state()
+
+        self.camera.AddObserver(vtk.vtkCommand.ModifiedEvent, self._update_constraint_scale)
+
+    def _update_constraint_scale(self, caller=None, event=None):
+        scale = self.camera.GetParallelScale() * 0.08
+
+        for ca in self.constraint_actors.values():
+            ca.actor.SetScale(scale, scale, scale)
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
@@ -166,7 +176,7 @@ class DrawingCanvas(QtInteractor):
         if actor is not None:
             actor.GetProperty().SetColor(pv.Color(color).float_rgb)
 
-    def draw_node(self, node_id: int, x: float, y: float):
+    def draw_node(self, node_id: int, x: float, y: float) -> None:
         point_mesh = pv.PolyData(np.array([[x, y, 0.1]]))
         point_actor = self.add_mesh(
             point_mesh, color=NORMAL_COLOR, point_size=14,
@@ -183,7 +193,7 @@ class DrawingCanvas(QtInteractor):
         self.node_actors[node_id] = NodeActors(point_actor, point_mesh, label_actor, label_mesh)
         self.actor_to_node[point_actor] = node_id
 
-    def draw_beam(self, beam_id: int):
+    def draw_beam(self, beam_id: int) -> None:
         if beam_id in self.beam_actors:
             return
 
@@ -202,6 +212,42 @@ class DrawingCanvas(QtInteractor):
 
         self.hovered_item = None
 
+    def draw_constraint(self, node_id: int, c_type: str) -> None:
+        if node_id in self.constraint_actors:
+            self.remove_actor(self.constraint_actors[node_id].actor)
+
+        node = self.node_model.nodes[node_id]
+        z = 0.06
+
+        if c_type == "fixed":
+            mesh = pv.Plane(center=(0, -0.5, 0), i_size=1.0, j_size=1.0)
+            color = "gray"
+
+        elif c_type == "pinned":
+            points = np.array([
+                [0.0, 0.0, 0.0],
+                [-0.5, -1.0, 0.0],
+                [0.5, -1.0, 0.0]
+            ])
+            faces = np.array([3, 0, 1, 2])
+            mesh = pv.PolyData(points, faces)
+            color = "gray"
+
+        elif c_type == "roller":
+            mesh = pv.Polygon(center=(0, -0.5, 0), radius=0.5, n_sides=20)
+            color = "gray"
+        else:
+            return
+
+        actor = self.add_mesh(
+            mesh, color=color, lighting=False, render=False, pickable=("constraint" in self.current_tool.pickable_targets)
+        )
+
+        actor.SetPosition(node.x, node.y, z)
+        self.constraint_actors[node_id] = ConstraintActors(actor, mesh, c_type)
+        self._update_constraint_scale()
+        self.render()
+
     def move_node_actor(self, node_id: int, x: float, y: float):
         na = self.node_actors[node_id]
         if not na: return
@@ -215,6 +261,10 @@ class DrawingCanvas(QtInteractor):
         for beam in self.beam_model.beams.values():
             if node_id == beam.node_id1 or node_id == beam.node_id2:
                 self.update_beam_geometry(beam.id)
+
+        if node_id in self.constraint_actors:
+            ca = self.constraint_actors[node_id]
+            ca.actor.SetPosition(x, y, 0.06)
 
     def update_beam_geometry(self, beam_id: int):
         beam_actor_data = self.beam_actors.get(beam_id)
@@ -242,11 +292,20 @@ class DrawingCanvas(QtInteractor):
         self.beam_actors.clear()
         self.actor_to_beam.clear()
 
+        self.constraint_actors.clear()
+
         self.selected_item = None
         self.hovered_item = None
 
         for node in self.node_model.nodes.values():
             self.draw_node(node.id, node.x, node.y)
+            if node.is_constrained:
+                if 1 in node.locked_dofs and 2 in node.locked_dofs and 3 in node.locked_dofs:
+                    self.draw_constraint(node.id, "fixed")
+                elif 1 in node.locked_dofs and 2 in node.locked_dofs:
+                    self.draw_constraint(node.id, "pinned")
+                elif 2 in node.locked_dofs:
+                    self.draw_constraint(node.id, "roller")
 
         for beam in self.beam_model.beams.values():
             self.draw_beam(beam.id)
