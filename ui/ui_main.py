@@ -3,7 +3,6 @@ from PySide6.QtWidgets import QMainWindow
 from .ui_elements import ToolButton, SmallButtonColumn, RibbonSeparator, Ribbon, RibbonGroup
 from canvas import DrawingCanvas
 from canvas.tools import *
-from model import BeamModel
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -11,8 +10,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Mit CAD/FEM Program")
         self.resize(800, 600)
 
-        self.model = BeamModel()
-        self.canvas = DrawingCanvas(self.model, on_change=self._update_status)
+        self.canvas = DrawingCanvas(on_change=self._update_status)
         self.setCentralWidget(self.canvas.interactor)
 
         self.active_button = None

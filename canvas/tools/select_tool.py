@@ -47,27 +47,33 @@ class SelectTool(Tool):
 
         if getattr(self.canvas, "dragging_node_id", None) is not None:
             node_id = self.canvas.dragging_node_id
-            self.canvas.model.nodes[node_id] = (x, y)
-            self.canvas.move_node_actor(node_id, x, y)
 
+            node = self.canvas.node_model.nodes[node_id]
+            node.x = x
+            node.y = y
+
+            self.canvas.move_node_actor(node_id, x, y)
             self.canvas.render()
+
         elif getattr(self.canvas, "dragging_beam_id", None) is not None:
-            node1_id, node2_id = self.canvas.dragging_beam_id
+            beam_id  = self.canvas.dragging_beam_id
+
+            beam = self.canvas.beam_model.beams[beam_id]
+            node1 = self.canvas.node_model.nodes[beam.node_id1]
+            node2 = self.canvas.node_model.nodes[beam.node_id2]
 
             dx = x - self.last_x
             dy = y - self.last_y
 
             # Flyt knude 1
-            x1, y1 = self.canvas.model.nodes[node1_id]
-            new_x1, new_y1 = x1 + dx, y1 + dy
-            self.canvas.model.nodes[node1_id] = (new_x1, new_y1)
-            self.canvas.move_node_actor(node1_id, new_x1, new_y1)
+            node1.x += dx
+            node1.y += dy
+            self.canvas.move_node_actor(node1.id, node1.x, node1.y)
 
             # Flyt knude 2
-            x2, y2 = self.canvas.model.nodes[node2_id]
-            new_x2, new_y2 = x2 + dx, y2 + dy
-            self.canvas.model.nodes[node2_id] = (new_x2, new_y2)
-            self.canvas.move_node_actor(node2_id, new_x2, new_y2)
+            node2.x += dx
+            node2.y += dy
+            self.canvas.move_node_actor(node2.id, node2.x, node2.y)
 
             self.last_x = x
             self.last_y = y

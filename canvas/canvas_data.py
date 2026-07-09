@@ -7,7 +7,7 @@ from dataclasses import dataclass
 class NodeActors:
     point_actor: vtk.vtkActor
     point_mesh: pv.PolyData
-    label_actor: vtk.vtkActor2D
+    label_actor: vtk.vtkActor
     label_mesh: pv.PolyData
 
 @dataclass

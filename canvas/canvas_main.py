@@ -6,6 +6,7 @@ from pyvistaqt import QtInteractor
 
 from .tools import *
 from .canvas_data import NodeActors, BeamActors
+from model import BeamModel, NodeModel
 
 
 NORMAL_COLOR = "black"
@@ -13,10 +14,11 @@ HIGHLIGHT_COLOR = "blue"
 SELECTED_COLOR = "orange"
 
 class DrawingCanvas(QtInteractor):
-    def __init__(self, model, on_change=None):
+    def __init__(self, on_change=None):
         super().__init__()
         self.current_tool = SelectTool(self)
-        self.model = model
+        self.beam_model = BeamModel()
+        self.node_model = NodeModel()
         self.on_change = on_change
         self.left_pressed = False
 
@@ -181,27 +183,28 @@ class DrawingCanvas(QtInteractor):
         self.node_actors[node_id] = NodeActors(point_actor, point_mesh, label_actor, label_mesh)
         self.actor_to_node[point_actor] = node_id
 
-    def draw_beam(self, node_id1: int, node_id2: int):
-        key = tuple(sorted((node_id1, node_id2)))
-        if key in self.beam_actors:
+    def draw_beam(self, beam_id: int):
+        if beam_id in self.beam_actors:
             return
 
-        x1, y1 = self.model.nodes[node_id1]
-        x2, y2 = self.model.nodes[node_id2]
+        beam = self.beam_model.beams[beam_id]
+        node1 = self.node_model.nodes[beam.node_id1]
+        node2 = self.node_model.nodes[beam.node_id2]
 
-        beam_mesh = pv.Line([x1, y1, 0.04], [x2, y2, 0.04])
+        beam_mesh = pv.Line([node1.x, node1.y, 0.04], [node2.x, node2.y, 0.04])
         beam_actor = self.add_mesh(
             beam_mesh, color=NORMAL_COLOR, line_width=4,
             pickable=("beam" in self.current_tool.pickable_targets)
         )
 
-        self.beam_actors[key] = BeamActors(beam_actor, beam_mesh)
-        self.actor_to_beam[beam_actor] = key
+        self.beam_actors[beam_id] = BeamActors(beam_actor, beam_mesh)
+        self.actor_to_beam[beam_actor] = beam_id
 
         self.hovered_item = None
 
     def move_node_actor(self, node_id: int, x: float, y: float):
         na = self.node_actors[node_id]
+        if not na: return
 
         na.point_mesh.points[0] = [x, y, 0.1]
         na.point_mesh.Modified()
@@ -209,21 +212,21 @@ class DrawingCanvas(QtInteractor):
         na.label_mesh.points[0] = [x, y, 0.1]
         na.label_mesh.Modified()
 
-        for (n1, n2) in self.model.beams:
-            if node_id == n1 or node_id == n2:
-                self.update_beam_geometry(n1, n2)
+        for beam in self.beam_model.beams.values():
+            if node_id == beam.node_id1 or node_id == beam.node_id2:
+                self.update_beam_geometry(beam.id)
 
-    def update_beam_geometry(self, node_id1: int, node_id2: int):
-        key = tuple(sorted((node_id1, node_id2)))
-        beam = self.beam_actors.get(key)
-        if not beam: return
+    def update_beam_geometry(self, beam_id: int):
+        beam_actor_data = self.beam_actors.get(beam_id)
+        if not beam_actor_data: return
 
-        x1, y1 = self.model.nodes[node_id1]
-        x2, y2 = self.model.nodes[node_id2]
+        beam = self.beam_model.beams[beam_id]
+        node1 = self.node_model.nodes[beam.node_id1]
+        node2 = self.node_model.nodes[beam.node_id2]
 
-        beam.beam_mesh.points[0] = [x1, y1, 0.04]
-        beam.beam_mesh.points[1] = [x2, y2, 0.04]
-        beam.beam_mesh.Modified()
+        beam_actor_data.beam_mesh.points[0] = [node1.x, node1.y, 0.04]
+        beam_actor_data.beam_mesh.points[1] = [node2.x, node2.y, 0.04]
+        beam_actor_data.beam_mesh.Modified()
 
     def redraw_all(self):
         for na in self.node_actors.values():
@@ -242,11 +245,11 @@ class DrawingCanvas(QtInteractor):
         self.selected_item = None
         self.hovered_item = None
 
-        for node_id, (x, y) in self.model.nodes.items():
-            self.draw_node(node_id, x, y)
+        for node in self.node_model.nodes.values():
+            self.draw_node(node.id, node.x, node.y)
 
-        for (n1, n2) in self.model.beams:
-            self.draw_beam(n1, n2)
+        for beam in self.beam_model.beams.values():
+            self.draw_beam(beam.id)
 
     def _set_interactor_style(self, style):
         self.iren.style = style

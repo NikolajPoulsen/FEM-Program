@@ -19,7 +19,7 @@ class BeamTool(Tool):
         node_id = self.canvas.actor_to_node.get(actor)
 
         if node_id is None and shift_pressed:
-            node_id = self.canvas.model.add_node(x, y)
+            node_id = self.canvas.node_model.add_node(x, y)
             self.canvas.draw_node(node_id, x, y)
 
         if node_id is None:
@@ -33,8 +33,8 @@ class BeamTool(Tool):
             node_id2 = node_id
 
             if node_id1 != node_id2:
-                self.canvas.model.add_beam(node_id1, node_id2)
-                self.canvas.draw_beam(node_id1, node_id2)
+                beam_id = self.canvas.beam_model.add_beam(node_id1, node_id2)
+                self.canvas.draw_beam(beam_id)
                 self.canvas.set_selected(None)
                 if self.canvas.on_change:
                     self.canvas.on_change()
