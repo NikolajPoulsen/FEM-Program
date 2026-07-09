@@ -1,5 +1,6 @@
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import QToolButton, QStyle, QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel, QTabWidget
+
 from enum import Enum, auto
 
 

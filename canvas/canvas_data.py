@@ -1,7 +1,7 @@
-from dataclasses import dataclass
 import pyvista as pv
 import vtk
 
+from dataclasses import dataclass
 
 @dataclass
 class NodeActors:

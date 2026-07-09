@@ -1,12 +1,15 @@
+import pyvista as pv
 import vtk
 import numpy as np
 from PySide6.QtCore import Qt
 from pyvistaqt import QtInteractor
-from canvas_tools import *
-from canvas_data import *
+
+from .tools import *
+from .canvas_data import NodeActors, BeamActors
 
 
 NORMAL_COLOR = "black"
+HIGHLIGHT_COLOR = "blue"
 SELECTED_COLOR = "orange"
 
 class DrawingCanvas(QtInteractor):

@@ -1,7 +1,9 @@
 from PySide6.QtWidgets import QMainWindow
-from ui_elements import ToolButton, SmallButtonColumn, RibbonSeparator, Ribbon, RibbonGroup
-from canvas.canvas_tools import *
-from canvas.canvas_main import DrawingCanvas, BeamModel
+
+from .ui_elements import ToolButton, SmallButtonColumn, RibbonSeparator, Ribbon, RibbonGroup
+from canvas import DrawingCanvas
+from canvas.tools import *
+from model import BeamModel
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -39,7 +41,7 @@ class MainWindow(QMainWindow):
         btn_element = ToolButton(text="Bjælke", style=ToolButton.ButtonStyle.LARGE, checkable=True)
 
         btn_node.clicked.connect(lambda checked=False, b=btn_node: self.tool_button_clicked(b, NodeTool))
-        btn_element.clicked.connect(lambda checked=False, b=btn_element: self.tool_button_clicked(b, ElementTool))
+        btn_element.clicked.connect(lambda checked=False, b=btn_element: self.tool_button_clicked(b, BeamTool))
 
         group_elements.add_widget(btn_node)
         group_elements.add_widget(btn_element)
