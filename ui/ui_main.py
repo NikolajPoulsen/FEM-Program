@@ -35,7 +35,7 @@ class MainWindow(QMainWindow):
         group_files.add_widget(col_files)
 
         # Group 2
-        group_elements = RibbonGroup("Elementer")
+        group_elements = RibbonGroup("Geometri")
 
         btn_node = ToolButton(text="Knude", style=ToolButton.ButtonStyle.LARGE, checkable=True)
         btn_element = ToolButton(text="Bjælke", style=ToolButton.ButtonStyle.LARGE, checkable=True)
