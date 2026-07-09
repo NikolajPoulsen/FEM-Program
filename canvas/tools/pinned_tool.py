@@ -1,4 +1,5 @@
 from .tool import Tool
+from model import DOF
 
 
 class PinnedTool(Tool):
@@ -12,7 +13,7 @@ class PinnedTool(Tool):
 
             if not node.is_constrained:
                 node.is_constrained = True
-                node.locked_dofs.update({1, 2})  # Lås u, v
+                node.locked_dofs.update({DOF.UX, DOF.UY})
 
                 self.canvas.draw_constraint(node_id, "pinned")
 

@@ -6,7 +6,7 @@ from pyvistaqt import QtInteractor
 
 from .tools import *
 from .canvas_data import NodeActors, BeamActors, ConstraintActors
-from model import BeamModel, NodeModel
+from model import BeamModel, NodeModel, DOF
 
 
 NORMAL_COLOR = "black"
@@ -300,11 +300,12 @@ class DrawingCanvas(QtInteractor):
         for node in self.node_model.nodes.values():
             self.draw_node(node.id, node.x, node.y)
             if node.is_constrained:
-                if 1 in node.locked_dofs and 2 in node.locked_dofs and 3 in node.locked_dofs:
+                #TODO: Opdater så dette er mere robust ved brug af constraint model
+                if DOF.UX in node.locked_dofs and DOF.UY in node.locked_dofs and DOF.RZ in node.locked_dofs:
                     self.draw_constraint(node.id, "fixed")
-                elif 1 in node.locked_dofs and 2 in node.locked_dofs:
+                elif DOF.UX in node.locked_dofs and DOF.UY in node.locked_dofs:
                     self.draw_constraint(node.id, "pinned")
-                elif 2 in node.locked_dofs:
+                elif DOF.UY in node.locked_dofs:
                     self.draw_constraint(node.id, "roller")
 
         for beam in self.beam_model.beams.values():

@@ -1,4 +1,5 @@
 from .tool import Tool
+from model import DOF
 
 
 class FixedTool(Tool):
@@ -12,7 +13,7 @@ class FixedTool(Tool):
 
             if not node.is_constrained:
                 node.is_constrained = True
-                node.locked_dofs.update({1, 2, 3})  # Lås u, v, theta
+                node.locked_dofs.update({DOF.UX, DOF.UY, DOF.RZ})
 
                 self.canvas.draw_constraint(node_id, "fixed")
 

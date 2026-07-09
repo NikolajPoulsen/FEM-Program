@@ -1,13 +1,23 @@
 from dataclasses import dataclass, field
+from enum import Enum
 
+
+class DOF(Enum):
+    UX = "ux"
+    UY = "uy"
+    UZ = "uz"
+    RX = "rx"
+    RY = "ry"
+    RZ = "rz"
 
 @dataclass
 class NodeData:
     id: int
     x: float
     y: float
+    #TODO: Flyt constraints ud i sin egen model
     is_constrained: bool = False
-    locked_dofs: set[int] = field(default_factory=set)
+    locked_dofs: set[DOF] = field(default_factory=set)
 
 class NodeModel:
     def __init__(self):
