@@ -45,6 +45,7 @@ class DrawingCanvas(QtInteractor):
         self.dragging_node_id: int | None = None
         self.dragging_beam_id: int | None = None
         self.selected_item: tuple[str, object] | None = None
+        self.hovered_item: tuple[str, object] | None = None
 
         self._apply_pickable_state()
 
@@ -108,10 +109,35 @@ class DrawingCanvas(QtInteractor):
 
         return self._picker.GetActor(), wx, wy
 
+    def set_hovered(self, item_type: str | None, item_id: object = None):
+        new_hover = (item_type, item_id) if item_type and item_id is not None else None
+
+        if self.hovered_item == new_hover:
+            return
+
+        if self.hovered_item is not None:
+            old_type, old_id = self.hovered_item
+            if self.hovered_item == self.selected_item:
+                self._set_item_color(old_type, old_id, SELECTED_COLOR)
+            else:
+                self._set_item_color(old_type, old_id, NORMAL_COLOR)
+
+        self.hovered_item = new_hover
+
+        if self.hovered_item is not None:
+            new_type, new_id = self.hovered_item
+            if self.hovered_item != self.selected_item:
+                self._set_item_color(new_type, new_id, HIGHLIGHT_COLOR)
+
+        self.render()
+
     def set_selected(self, item_type: str | None, item_id: object = None):
         if self.selected_item is not None:
             old_type, old_id = self.selected_item
-            self._set_item_color(old_type, old_id, NORMAL_COLOR)
+            if self.selected_item == self.hovered_item:
+                self._set_item_color(old_type, old_id, HIGHLIGHT_COLOR)
+            else:
+                self._set_item_color(old_type, old_id, NORMAL_COLOR)
 
         if item_type is None or item_id is None:
             self.selected_item = None
@@ -172,6 +198,8 @@ class DrawingCanvas(QtInteractor):
         self.beam_actors[key] = BeamActors(beam_actor, beam_mesh)
         self.actor_to_beam[beam_actor] = key
 
+        self.hovered_item = None
+
     def move_node_actor(self, node_id: int, x: float, y: float):
         na = self.node_actors[node_id]
 
@@ -212,6 +240,7 @@ class DrawingCanvas(QtInteractor):
         self.actor_to_beam.clear()
 
         self.selected_item = None
+        self.hovered_item = None
 
         for node_id, (x, y) in self.model.nodes.items():
             self.draw_node(node_id, x, y)

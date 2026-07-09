@@ -3,13 +3,14 @@ from .tool import Tool
 
 class BeamTool(Tool):
     name = "Beam"
-    pickable_targets = {"node"}
+    pickable_targets = {"plane", "node"}
 
     def __init__(self, canvas):
         super().__init__(canvas)
         self.pending_node = None
 
     def on_left_press(self, actor, x, y):
+        #TODO: Funktionalitet så man kan oprette beam uden nodes
         node_id = self.canvas.actor_to_node.get(actor)
         if node_id is None:
             return
@@ -31,5 +32,11 @@ class BeamTool(Tool):
             self.pending_node = None
 
     def on_hover(self, actor, x, y):
-        #TODO: Add highlight til knuden musen er over
-        pass
+        if actor is self.canvas.plane_actor or actor is None:
+            self.canvas.set_hovered(None)
+            return
+
+        node_id = self.canvas.actor_to_node.get(actor)
+        if node_id is not None:
+            self.canvas.set_hovered("node", node_id)
+            return

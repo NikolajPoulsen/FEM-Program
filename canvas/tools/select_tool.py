@@ -73,3 +73,18 @@ class SelectTool(Tool):
             self.last_y = y
 
             self.canvas.render()
+
+    def on_hover(self, actor, x, y):
+        if actor is self.canvas.plane_actor or actor is None:
+            self.canvas.set_hovered(None)
+            return
+
+        node_id = self.canvas.actor_to_node.get(actor)
+        if node_id is not None:
+            self.canvas.set_hovered("node", node_id)
+            return
+
+        beam_id = self.canvas.actor_to_beam.get(actor)
+        if beam_id is not None:
+            self.canvas.set_hovered("beam", beam_id)
+            return
