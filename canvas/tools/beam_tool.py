@@ -1,3 +1,6 @@
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtCore import Qt
+
 from .tool import Tool
 
 
@@ -10,8 +13,15 @@ class BeamTool(Tool):
         self.pending_node = None
 
     def on_left_press(self, actor, x, y):
-        #TODO: Funktionalitet så man kan oprette beam uden nodes
+        modifiers = QGuiApplication.keyboardModifiers()
+        shift_pressed = bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
+
         node_id = self.canvas.actor_to_node.get(actor)
+
+        if node_id is None and shift_pressed:
+            node_id = self.canvas.model.add_node(x, y)
+            self.canvas.draw_node(node_id, x, y)
+
         if node_id is None:
             return
 
