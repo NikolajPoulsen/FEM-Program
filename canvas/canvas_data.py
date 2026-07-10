@@ -20,3 +20,9 @@ class ConstraintActors:
     actor: vtk.vtkActor
     mesh: pv.PolyData
     c_type: str  # 'fixed', 'pinned' eller 'roller'
+
+@dataclass
+class LoadActors:
+    actor: vtk.vtkActor
+    mesh: pv.PolyData
+    l_type: str  # 'point_load' eller 'line_load'

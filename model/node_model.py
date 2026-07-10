@@ -11,7 +11,7 @@ class DOF(Enum):
     RZ = "rz"
 
 @dataclass
-class NodeData:
+class Node:
     id: int
     x: float
     y: float
@@ -21,12 +21,12 @@ class NodeData:
 
 class NodeModel:
     def __init__(self):
-        self.nodes: dict[int, NodeData] = {}
+        self.nodes: dict[int, Node] = {}
         self._next_id = 1
 
     def add_node(self, x: float, y: float) -> int:
         node_id = self._next_id
-        self.nodes[node_id] = NodeData(id=node_id, x=x, y=y)
+        self.nodes[node_id] = Node(id=node_id, x=x, y=y)
         self._next_id += 1
         return node_id
 

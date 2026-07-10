@@ -4,9 +4,11 @@ import numpy as np
 from PySide6.QtCore import Qt
 from pyvistaqt import QtInteractor
 
+import math
+
 from .tools import *
-from .canvas_data import NodeActors, BeamActors, ConstraintActors
-from model import BeamModel, NodeModel, DOF
+from .canvas_data import NodeActors, BeamActors, ConstraintActors, LoadActors
+from model import BeamModel, NodeModel, DOF, LoadCase
 
 
 NORMAL_COLOR = "black"
@@ -45,6 +47,7 @@ class DrawingCanvas(QtInteractor):
         self.actor_to_beam: dict[object, tuple[int, int]] = {}
 
         self.constraint_actors: dict[int, ConstraintActors] = {}
+        self.load_actors: dict[int, LoadActors] = {}
 
         self.dragging_node_id: int | None = None
         self.dragging_beam_id: int | None = None
@@ -53,13 +56,26 @@ class DrawingCanvas(QtInteractor):
 
         self._apply_pickable_state()
 
-        self.camera.AddObserver(vtk.vtkCommand.ModifiedEvent, self._update_constraint_scale)
+        self.camera.AddObserver(vtk.vtkCommand.ModifiedEvent, self._update_scale)
 
-    def _update_constraint_scale(self, caller=None, event=None):
+    def _update_scale(self, caller=None, event=None):
         scale = self.camera.GetParallelScale() * 0.08
 
         for ca in self.constraint_actors.values():
             ca.actor.SetScale(scale, scale, scale)
+
+        for key, la in self.load_actors.items():
+            if la.l_type == "point_load":
+                la.actor.SetScale(scale, scale, scale)
+            elif la.l_type == "line_load":
+                beam_id = int(key.split("_")[1])
+                beam = self.beam_model.beams[beam_id]
+                n1 = self.node_model.nodes[beam.node_id1]
+                n2 = self.node_model.nodes[beam.node_id2]
+
+                L = math.sqrt((n2.x - n1.x) ** 2 + (n2.y - n1.y) ** 2)
+
+                la.actor.SetScale(L, scale, 1.0)
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
@@ -212,9 +228,48 @@ class DrawingCanvas(QtInteractor):
 
         self.hovered_item = None
 
+    def draw_load(self, node_id: int | None = None, beam_id: int | None = None, l_type: str = "") -> None:
+        load_key = f"node_{node_id}" if node_id is not None else f"beam_{beam_id}"
+
+        if load_key in self.load_actors:
+            return
+
+        z = 0.08
+
+        if l_type == "point_load" and node_id is not None:
+            node = self.node_model.nodes[node_id]
+
+            mesh = pv.Arrow(start=(0, 1, 0), direction=(0, -1, 0), scale=1.0)
+            color = "green"
+
+            actor = self.add_mesh(mesh, color=color, lighting=False, pickable=False, render=False)
+            actor.SetPosition(node.x, node.y, z+0.005)
+
+            self.load_actors[load_key] = LoadActors(actor, mesh, l_type)
+
+        elif l_type == "line_load" and beam_id is not None:
+            points = np.array([
+                [0, 0, 0],  # Bund-venstre
+                [1.0, 0, 0],  # Bund-højre
+                [1.0, 1.0, 0],  # Top-højre
+                [0, 1.0, 0]  # Top-venstre
+            ])
+            faces = np.array([4, 0, 1, 2, 3])
+            mesh = pv.PolyData(points, faces)
+            color = "orange"
+
+            actor = self.add_mesh(mesh, color=color, opacity=0.4, lighting=False, pickable=False, render=False)
+
+            self.load_actors[load_key] = LoadActors(actor, mesh, l_type)
+
+            self.update_line_load_geometry(beam_id)
+
+        self._update_scale()
+        self.render()
+
     def draw_constraint(self, node_id: int, c_type: str) -> None:
         if node_id in self.constraint_actors:
-            self.remove_actor(self.constraint_actors[node_id].actor)
+            return
 
         node = self.node_model.nodes[node_id]
         z = 0.06
@@ -245,7 +300,7 @@ class DrawingCanvas(QtInteractor):
 
         actor.SetPosition(node.x, node.y, z)
         self.constraint_actors[node_id] = ConstraintActors(actor, mesh, c_type)
-        self._update_constraint_scale()
+        self._update_scale()
         self.render()
 
     def move_node_actor(self, node_id: int, x: float, y: float):
@@ -262,9 +317,15 @@ class DrawingCanvas(QtInteractor):
             if node_id == beam.node_id1 or node_id == beam.node_id2:
                 self.update_beam_geometry(beam.id)
 
+                if f"beam_{beam.id}" in self.load_actors:
+                    self.update_line_load_geometry(beam.id)
+
         if node_id in self.constraint_actors:
             ca = self.constraint_actors[node_id]
             ca.actor.SetPosition(x, y, 0.06)
+
+        if f"node_{node_id}" in self.load_actors:
+            self.load_actors[f"node_{node_id}"].actor.SetPosition(x, y, 0.085)
 
     def update_beam_geometry(self, beam_id: int):
         beam_actor_data = self.beam_actors.get(beam_id)
@@ -277,6 +338,27 @@ class DrawingCanvas(QtInteractor):
         beam_actor_data.beam_mesh.points[0] = [node1.x, node1.y, 0.04]
         beam_actor_data.beam_mesh.points[1] = [node2.x, node2.y, 0.04]
         beam_actor_data.beam_mesh.Modified()
+
+    def update_line_load_geometry(self, beam_id: int):
+        load_key = f"beam_{beam_id}"
+        if load_key not in self.load_actors:
+            return
+
+        la = self.load_actors[load_key]
+        beam = self.beam_model.beams[beam_id]
+        n1 = self.node_model.nodes[beam.node_id1]
+        n2 = self.node_model.nodes[beam.node_id2]
+
+        dx = n2.x - n1.x
+        dy = n2.y - n1.y
+        L = math.sqrt(dx ** 2 + dy ** 2)
+        angle = math.degrees(math.atan2(dy, dx))
+
+        la.actor.SetPosition(n1.x, n1.y, 0.08)
+        la.actor.SetOrientation(0, 0, angle)
+
+        current_y_scale = self.camera.GetParallelScale() * 0.08
+        la.actor.SetScale(L, current_y_scale, 1.0)
 
     def redraw_all(self):
         for na in self.node_actors.values():
@@ -293,6 +375,7 @@ class DrawingCanvas(QtInteractor):
         self.actor_to_beam.clear()
 
         self.constraint_actors.clear()
+        self.load_actors.clear()
 
         self.selected_item = None
         self.hovered_item = None

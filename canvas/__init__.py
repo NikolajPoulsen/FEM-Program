@@ -1,4 +1,4 @@
-from .canvas_data import NodeActors, BeamActors, ConstraintActors
+from .canvas_data import NodeActors, BeamActors, ConstraintActors, LoadActors
 from .canvas_main import DrawingCanvas
 
 __all__ = [
@@ -6,4 +6,5 @@ __all__ = [
     'NodeActors',
     'BeamActors',
     'ConstraintActors',
+    'LoadActors',
 ]

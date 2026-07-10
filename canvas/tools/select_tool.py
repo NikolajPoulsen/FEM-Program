@@ -65,12 +65,10 @@ class SelectTool(Tool):
             dx = x - self.last_x
             dy = y - self.last_y
 
-            # Flyt knude 1
             node1.x += dx
             node1.y += dy
             self.canvas.move_node_actor(node1.id, node1.x, node1.y)
 
-            # Flyt knude 2
             node2.x += dx
             node2.y += dy
             self.canvas.move_node_actor(node2.id, node2.x, node2.y)
